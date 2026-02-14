@@ -1,5 +1,7 @@
 import streamlit as st
 import numpy as np
+from utils.generator import generate_answer
+
 
 from utils.loader import load_pdf
 from utils.chunker import chunk_text
@@ -41,8 +43,12 @@ if uploaded_file:
             query_embedding = model.encode(query)
             results = search_index(index, query_embedding, chunks)
 
-            st.subheader("Top Relevant Chunks:")
-            for i, res in enumerate(results):
-                st.write(f"Result {i+1}:")
-                st.write(res)
+            # Combine retrieved chunks into single context
+            context = results[0]   # Only use most relevant chunk
+
+            st.subheader("Generated Answer:")
+
+            answer = generate_answer(context, query)
+
+            st.write(answer)
 
