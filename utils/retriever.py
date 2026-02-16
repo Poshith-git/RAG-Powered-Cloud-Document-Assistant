@@ -34,4 +34,5 @@ def search_index(index, query_embedding, chunks, top_k=3):
     for i in indices[0]:
         results.append(chunks[i])
 
-    return results
+    return results, distances[0]
+

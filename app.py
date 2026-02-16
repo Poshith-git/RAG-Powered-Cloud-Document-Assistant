@@ -1,54 +1,97 @@
 import streamlit as st
-import numpy as np
-from utils.generator import generate_answer
-
-
 from utils.loader import load_pdf
 from utils.chunker import chunk_text
-from utils.embeddings import generate_embeddings, model
+from utils.embeddings import generate_embeddings
 from utils.retriever import create_faiss_index, search_index
+from utils.generator import generate_answer
 
-st.set_page_config(page_title="Cloud-Based RAG Document Assistant")
+# -------------------------------
+# Page Configuration
+# -------------------------------
+st.set_page_config(
+    page_title="Cloud-Based RAG Document Assistant",
+    layout="wide"
+)
 
 st.title("📄 Cloud-Based RAG Document Assistant")
 
-uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+st.markdown(
+    """
+Upload a PDF document and ask questions about it.
+The system retrieves relevant sections using semantic search
+and generates AI-powered answers grounded in the document.
+"""
+)
 
-if uploaded_file:
+# -------------------------------
+# Sidebar Info
+# -------------------------------
+with st.sidebar:
+    st.header("🔎 About This Project")
+    st.write(
+        """
+This application uses Retrieval-Augmented Generation (RAG).
 
-    # Extract text
+Pipeline:
+Document → Chunking → Embeddings → FAISS Retrieval → LLM Generation
+"""
+    )
+    st.write("Model: FLAN-T5-small")
+    st.write("Embedding: all-MiniLM-L6-v2")
+    st.write("Vector Store: FAISS (Cosine Similarity)")
+
+# -------------------------------
+# File Upload
+# -------------------------------
+uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+
+if uploaded_file is not None:
+
+    # Load & clean text
     text = load_pdf(uploaded_file)
 
-    if not text or text.startswith("Error"):
-        st.error("Error extracting text from PDF.")
-    else:
-        # Chunk text
-        chunks = chunk_text(text)
+    # Chunk text
+    chunks = chunk_text(text)
 
-        st.write(f"Total Chunks Created: {len(chunks)}")
+    # Generate embeddings
+    embeddings = generate_embeddings(chunks)
 
-        if "index" not in st.session_state:
-            embeddings = generate_embeddings(chunks)
-            st.session_state.index = create_faiss_index(embeddings)
-            st.session_state.chunks = chunks
+    # Create FAISS index
+    index = create_faiss_index(embeddings)
 
-        index = st.session_state.index
-        chunks = st.session_state.chunks
+    st.success("Document processed successfully!")
 
+    # -------------------------------
+    # Question Input
+    # -------------------------------
+    query = st.text_input("Ask a question about the document:")
 
-        # Query input
-        query = st.text_input("Ask a question about the document")
+    if query:
 
-        if query:
-            query_embedding = model.encode(query)
-            results = search_index(index, query_embedding, chunks)
+        # Generate embedding for query
+        query_embedding = generate_embeddings([query])[0]
 
-            # Combine retrieved chunks into single context
-            context = results[0]   # Only use most relevant chunk
+        # Retrieve relevant chunks + scores
+        results, scores = search_index(index, query_embedding, chunks)
 
-            st.subheader("Generated Answer:")
+        # Use only most relevant chunk (better for small model)
+        context = results[0]
+        confidence = float(scores[0])
 
+        # -------------------------------
+        # Generate Answer
+        # -------------------------------
+        with st.spinner("Generating answer..."):
             answer = generate_answer(context, query)
 
-            st.write(answer)
+        st.success("Answer generated successfully!")
 
+        st.subheader("📌 Generated Answer")
+        st.write(answer)
+
+        # Confidence Score
+        st.caption(f"Retrieval Confidence Score: {round(confidence, 4)}")
+
+        # Expandable Retrieved Context
+        with st.expander("📄 View Retrieved Context"):
+            st.write(context)
