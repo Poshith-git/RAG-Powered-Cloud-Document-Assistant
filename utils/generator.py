@@ -1,26 +1,44 @@
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import os
 import torch
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-model_name = "google/flan-t5-small"
+# ----------------------------------------
+# Model Configuration
+# ----------------------------------------
+MODEL_NAME = "google/flan-t5-small"
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+# Load tokenizer
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_NAME,
+    token=HF_TOKEN
+)
+
+# Load model
+model = AutoModelForSeq2SeqLM.from_pretrained(
+    MODEL_NAME,
+    token=HF_TOKEN,
+    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+)
+
+model.eval()
 
 
+# ----------------------------------------
+# Answer Generation Function
+# ----------------------------------------
 def generate_answer(context, question):
     """
-    Generate structured answer using FLAN-T5-small.
+    Generates answer using FLAN-T5-small model.
     """
 
-    prompt = f"""
-You are a professional technical assistant.
+    if not context.strip():
+        return "No relevant context found in the document."
 
-Answer the question clearly and in complete sentences.
-Use only the information provided in the context.
-Do not repeat phrases.
-Do not copy section numbers.
-Do not list bullet points.
-Write a short paragraph explanation.
+    prompt = f"""
+You are a helpful assistant.
+Answer the question using ONLY the provided context.
 
 Context:
 {context}
@@ -41,12 +59,17 @@ Answer:
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=200,
-            temperature=0.2,      # reduce randomness
-            repetition_penalty=1.2,  # reduce repetition loops
-            num_beams=4           # more structured output
+            max_new_tokens=150,
+            temperature=0.3,
+            do_sample=False
         )
 
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    return answer.strip()
+    # Clean output
+    answer = decoded.strip()
+
+    if answer == "":
+        return "The model could not generate a proper answer."
+
+    return answer
