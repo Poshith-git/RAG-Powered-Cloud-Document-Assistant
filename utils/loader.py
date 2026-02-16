@@ -1,45 +1,22 @@
 from pypdf import PdfReader
-import re
 
-
-def load_pdf(file):
+def load_pdf(file_path):
     """
-    Extract and aggressively clean PDF text.
+    Loads a PDF file from a file path
+    and extracts all text.
+    Compatible with local and HF Docker environment.
     """
     try:
-        reader = PdfReader(file)
+        reader = PdfReader(file_path)
         text = ""
 
         for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
 
-        cleaned_lines = []
-
-        for line in text.split("\n"):
-            line = line.strip()
-
-            if not line:
-                continue
-
-            # Remove index heading
-            if line.lower().startswith("index"):
-                continue
-
-            # Remove lines that are mostly dots (TOC format)
-            if re.search(r"\.{5,}", line):
-                continue
-
-            # Remove lines that are mostly numbers
-            if re.fullmatch(r"[0-9.\s]+", line):
-                continue
-
-            cleaned_lines.append(line)
-
-        cleaned_text = "\n".join(cleaned_lines)
-
-        return cleaned_text
+        return text
 
     except Exception as e:
-        return f"Error reading PDF: {str(e)}"
+        print(f"PDF Loading Error: {e}")
+        return ""
