@@ -1,16 +1,13 @@
 import streamlit as st
-import tempfile
-import os
-
 from utils.loader import load_pdf
 from utils.chunker import chunk_text
 from utils.embeddings import generate_embeddings
 from utils.retriever import create_faiss_index, search_index
 from utils.generator import generate_answer
 
-# -------------------------------
+# ---------------------------------
 # Page Configuration
-# -------------------------------
+# ---------------------------------
 st.set_page_config(
     page_title="Cloud-Based RAG Document Assistant",
     layout="wide"
@@ -18,104 +15,104 @@ st.set_page_config(
 
 st.title("📄 Cloud-Based RAG Document Assistant")
 
-st.markdown(
-    """
-Upload a PDF document and ask questions about it.
-The system retrieves relevant sections using semantic search
+st.markdown("""
+Upload a PDF document and ask questions about it.  
+The system retrieves relevant sections using semantic search  
 and generates AI-powered answers grounded in the document.
-"""
-)
+""")
 
-# -------------------------------
-# Sidebar Info
-# -------------------------------
+# ---------------------------------
+# Sidebar
+# ---------------------------------
 with st.sidebar:
     st.header("🔎 About This Project")
-    st.write(
-        """
+    st.write("""
 This application uses Retrieval-Augmented Generation (RAG).
 
 Pipeline:
 Document → Chunking → Embeddings → FAISS Retrieval → LLM Generation
-"""
-    )
+""")
     st.write("Model: FLAN-T5-small")
     st.write("Embedding: all-MiniLM-L6-v2")
     st.write("Vector Store: FAISS (Cosine Similarity)")
 
-# -------------------------------
-# File Upload
-# -------------------------------
-uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+# ---------------------------------
+# File Upload (HF SAFE)
+# ---------------------------------
+uploaded_file = st.file_uploader(
+    "Upload a PDF file",
+    type=["pdf"],
+    accept_multiple_files=False
+)
 
 if uploaded_file is not None:
 
     try:
-        # Save file safely in HF-supported temp directory
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-            tmp_file.write(uploaded_file.read())
-            tmp_path = tmp_file.name
+        # Reset pointer (important for HF Spaces)
+        uploaded_file.seek(0)
 
-        # Load PDF text
-        text = load_pdf(tmp_path)
+        # Load text from PDF (memory-based only)
+        text = load_pdf(uploaded_file)
 
-        # Remove temp file after reading
-        os.remove(tmp_path)
-
-        if not text.strip():
-            st.error("❌ Could not extract text from PDF.")
+        if not text or not text.strip():
+            st.error("No readable text found in the PDF.")
             st.stop()
 
-        # Chunk text
+        # ---------------------------------
+        # Chunking
+        # ---------------------------------
         chunks = chunk_text(text)
 
-        # Generate embeddings
+        if not chunks:
+            st.error("Text chunking failed.")
+            st.stop()
+
+        # ---------------------------------
+        # Embeddings
+        # ---------------------------------
         embeddings = generate_embeddings(chunks)
 
-        # Create FAISS index
+        # ---------------------------------
+        # Create FAISS Index
+        # ---------------------------------
         index = create_faiss_index(embeddings)
 
         st.success("✅ Document processed successfully!")
 
-        # -------------------------------
-        # Question Input
-        # -------------------------------
+        # ---------------------------------
+        # Question Section
+        # ---------------------------------
         query = st.text_input("Ask a question about the document:")
 
         if query:
 
-            # Generate embedding for query
             query_embedding = generate_embeddings([query])[0]
 
-            # Retrieve relevant chunks
             results, scores = search_index(index, query_embedding, chunks)
 
             if not results:
                 st.warning("No relevant context found.")
                 st.stop()
 
-            # Use best chunk only (better for small model)
             context = results[0]
             confidence = float(scores[0])
 
-            # -------------------------------
-            # Generate Answer
-            # -------------------------------
             with st.spinner("Generating answer..."):
                 answer = generate_answer(context, query)
 
-            if not answer.strip():
-                st.warning("Model returned empty response.")
-            else:
-                st.subheader("📌 Generated Answer")
-                st.write(answer)
+            st.success("Answer generated successfully!")
 
-            # Confidence Score
+            # Display Answer
+            st.subheader("📌 Generated Answer")
+            st.write(answer if answer.strip() else "No answer generated.")
+
+            # Confidence
             st.caption(f"Retrieval Confidence Score: {round(confidence, 4)}")
 
-            # Expandable Retrieved Context
+            # Context Viewer
             with st.expander("📄 View Retrieved Context"):
                 st.write(context)
 
     except Exception as e:
-        st.error(f"🚨 Error: {str(e)}")
+        st.error("An unexpected error occurred.")
+        st.error(str(e))
