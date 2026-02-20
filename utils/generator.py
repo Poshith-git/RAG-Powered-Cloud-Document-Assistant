@@ -1,44 +1,23 @@
-import os
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# ----------------------------------------
-# Model Configuration
-# ----------------------------------------
-MODEL_NAME = "google/flan-t5-small"
+# Load once (important)
+tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
+model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-small")
 
-HF_TOKEN = os.getenv("HF_TOKEN")
-
-# Load tokenizer
-tokenizer = AutoTokenizer.from_pretrained(
-    MODEL_NAME,
-    token=HF_TOKEN
-)
-
-# Load model
-model = AutoModelForSeq2SeqLM.from_pretrained(
-    MODEL_NAME,
-    token=HF_TOKEN,
-    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-)
-
-model.eval()
-
-
-# ----------------------------------------
-# Answer Generation Function
-# ----------------------------------------
 def generate_answer(context, question):
-    """
-    Generates answer using FLAN-T5-small model.
-    """
 
-    if not context.strip():
-        return "No relevant context found in the document."
+    # Limit context size (VERY IMPORTANT)
+    context = context[:1500]
 
     prompt = f"""
-You are a helpful assistant.
-Answer the question using ONLY the provided context.
+You are a Software Engineering expert.
+
+Using only the context provided below,
+answer the question clearly and in detail.
+
+If the question asks for differences, present the answer in bullet points.
+If the question asks for explanation, give at least 5 clear points.
 
 Context:
 {context}
@@ -53,23 +32,24 @@ Answer:
         prompt,
         return_tensors="pt",
         truncation=True,
-        max_length=512
+        max_length=1024
     )
 
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=150,
-            temperature=0.3,
-            do_sample=False
+            max_new_tokens=400,        # 🔥 Increased
+            min_length=80,             # 🔥 Forces longer output
+            temperature=0.8,
+            top_p=0.95,
+            do_sample=True,
+            repetition_penalty=1.2,
+            no_repeat_ngram_size=3
         )
 
-    decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    if len(answer.strip()) < 10:
+        return "The answer is not clearly available in the provided document."
 
-    # Clean output
-    answer = decoded.strip()
 
-    if answer == "":
-        return "The model could not generate a proper answer."
-
-    return answer
+    return answer.strip()
