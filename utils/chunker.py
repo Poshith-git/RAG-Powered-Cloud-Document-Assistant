@@ -1,18 +1,21 @@
-def chunk_text(text, chunk_size=600, overlap=150):
+def chunk_text(text, chunk_size=800, overlap=150):
     """
-    Split text into overlapping chunks and remove TOC-like chunks.
+    Paragraph-aware chunking to preserve section boundaries.
     """
+
+    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+
     chunks = []
-    start = 0
+    current_chunk = ""
 
-    while start < len(text):
-        end = start + chunk_size
-        chunk = text[start:end]
+    for para in paragraphs:
+        if len(current_chunk) + len(para) < chunk_size:
+            current_chunk += " " + para
+        else:
+            chunks.append(current_chunk.strip())
+            current_chunk = para
 
-        # Skip chunks that are too short
-        if len(chunk.strip()) > 200:
-            chunks.append(chunk)
-
-        start += chunk_size - overlap
+    if current_chunk:
+        chunks.append(current_chunk.strip())
 
     return chunks
