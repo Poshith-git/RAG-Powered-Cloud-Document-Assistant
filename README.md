@@ -10,15 +10,42 @@ pinned: false
 
 # Cloud-Based RAG Document Assistant
 
-An end-to-end Retrieval-Augmented Generation (RAG) web application built using:
+A **Retrieval-Augmented Generation (RAG)** web application that allows users to upload PDF documents and ask questions based on the document content. The system retrieves relevant sections using semantic search and generates grounded answers using a language model.
 
-- Streamlit
-- FAISS
-- SentenceTransformers
-- FLAN-T5 (local model)
+---
 
-Users can upload a PDF document and ask natural language questions.
-The system retrieves relevant content and generates AI-powered answers grounded in the document.
+## Architecture
 
-Pipeline:
-PDF → Cleaning → Chunking → Embeddings → FAISS → LLM → Answer + Confidence
+User Question  
+↓  
+Query Embedding (E5 Model)  
+↓  
+FAISS Vector Search  
+↓  
+Relevant Document Chunks  
+↓  
+FLAN-T5 Answer Generation  
+↓  
+Answer + Confidence Score
+
+---
+
+## Features
+
+- Upload and query **PDF documents**
+- Semantic search using **E5 embeddings**
+- Fast vector retrieval with **FAISS**
+- Answer generation using **FLAN-T5**
+- Retrieval **confidence scoring**
+- Deployable using **Streamlit and Docker**
+
+---
+
+## Tech Stack
+
+Python  
+Streamlit  
+FAISS  
+Sentence Transformers  
+Hugging Face Transformers  
+Docker
