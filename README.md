@@ -65,7 +65,7 @@ Docker
 
 Try the live application on Hugging Face Spaces:
 
-https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+https://huggingface.co/spaces/Manchivishyam/rag-document-assistant
 
 ---
 
