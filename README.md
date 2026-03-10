@@ -10,7 +10,16 @@ pinned: false
 
 # Cloud-Based RAG Document Assistant
 
-A **Retrieval-Augmented Generation (RAG)** web application that allows users to upload PDF documents and ask questions based on the document content. The system retrieves relevant sections using semantic search and generates grounded answers using a language model.
+![Python](https://img.shields.io/badge/Python-3.9+-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-Web_App-red)
+![RAG](https://img.shields.io/badge/AI-RAG_System-purple)
+![FAISS](https://img.shields.io/badge/VectorDB-FAISS-orange)
+![HuggingFace](https://img.shields.io/badge/LLM-HuggingFace-yellow)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+A cloud-deployed **Retrieval-Augmented Generation (RAG)** application that enables users to upload PDF documents and ask questions grounded in the document content.
+
+The system performs **semantic retrieval using vector embeddings** and generates answers using a **language model**, reducing hallucination and improving response relevance.
 
 ---
 
@@ -20,24 +29,24 @@ User Question
 ↓  
 Query Embedding (E5 Model)  
 ↓  
-FAISS Vector Search  
+FAISS Vector Similarity Search  
 ↓  
-Relevant Document Chunks  
+Top-K Relevant Document Chunks  
 ↓  
-FLAN-T5 Answer Generation  
+FLAN-T5 Context-Aware Answer Generation  
 ↓  
-Answer + Confidence Score
+Answer + Retrieval Confidence Score
 
 ---
 
 ## Features
 
 - Upload and query **PDF documents**
-- Semantic search using **E5 embeddings**
-- Fast vector retrieval with **FAISS**
-- Answer generation using **FLAN-T5**
+- **Semantic document retrieval** using E5 embeddings
+- Efficient vector similarity search using **FAISS**
+- Context-aware answer generation using **FLAN-T5**
 - Retrieval **confidence scoring**
-- Deployable using **Streamlit and Docker**
+- Deployable as a **Streamlit web application**
 
 ---
 
@@ -49,3 +58,27 @@ FAISS
 Sentence Transformers  
 Hugging Face Transformers  
 Docker
+
+---
+
+## Demo
+
+Try the live application on Hugging Face Spaces:
+
+https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+
+---
+
+## Example Use Cases
+
+Upload a PDF and ask questions such as:
+
+- What is the Spiral Model?
+- Explain the advantages of the Spiral Model.
+- What are the key stages of the Spiral Model?
+
+---
+
+## License
+
+MIT License
