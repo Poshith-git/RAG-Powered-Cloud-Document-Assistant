@@ -69,13 +69,13 @@ https://huggingface.co/spaces/Manchivishyam/rag-document-assistant
 
 ---
 
-## Example Use Cases
+## Usage
 
-Upload a PDF and ask questions such as:
-
-- What is the Spiral Model?
-- Explain the advantages of the Spiral Model.
-- What are the key stages of the Spiral Model?
+1. Upload a PDF document.
+2. Ask a question related to the document.
+3. The system retrieves relevant document sections using semantic search.
+4. A language model generates an answer grounded in the retrieved context.
+5. The interface displays the answer along with a retrieval confidence score.
 
 ---
 
