@@ -1,6 +1,8 @@
 def chunk_text(text, chunk_size=800, overlap=150):
     """
-    Paragraph-aware chunking to preserve section boundaries.
+    Paragraph-aware chunking to preserve section boundaries,
+    with a trailing overlap carried into the next chunk so that
+    context isn't lost at chunk boundaries.
     """
 
     paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
@@ -13,7 +15,9 @@ def chunk_text(text, chunk_size=800, overlap=150):
             current_chunk += " " + para
         else:
             chunks.append(current_chunk.strip())
-            current_chunk = para
+            # carry the trailing `overlap` characters into the next chunk
+            tail = current_chunk[-overlap:] if overlap > 0 else ""
+            current_chunk = tail + " " + para
 
     if current_chunk:
         chunks.append(current_chunk.strip())

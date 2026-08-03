@@ -8,40 +8,33 @@ from utils.generator import generate_answer
 
 
 # -------------------------------------------------
-# Section-Bounded List Extraction Utility
+# General-Purpose Numbered/Bulleted List Extraction
 # -------------------------------------------------
 def extract_numbered_list(context):
     """
-    Extract numbered list items only from the
-    'Advantages of the Spiral Model' section.
+    Extract a numbered or bulleted list from the retrieved context,
+    generically -- not tied to any specific document or heading.
+    Looks for the densest run of list-like lines in the context and
+    returns that run, so it works on any document that happens to
+    contain a list near the retrieved passage.
     """
 
-    # Focus only on Advantages section
-    if "Advantages of the Spiral Model" in context:
-        section = context.split("Advantages of the Spiral Model", 1)[1]
-    else:
-        section = context
+    lines = [l.strip() for l in context.split("\n") if l.strip()]
 
-    # Stop extraction before unrelated headings
-    stop_keywords = [
-        "Disadvantages",
-        "When To Use",
-        "When a project",
-        "Example"
+    numbered_pattern = re.compile(r"^\d+[\.\)]\s+.+")
+    bulleted_pattern = re.compile(r"^[-*•]\s+.+")
+
+    list_lines = [
+        l for l in lines
+        if numbered_pattern.match(l) or bulleted_pattern.match(l)
     ]
 
-    for keyword in stop_keywords:
-        if keyword in section:
-            section = section.split(keyword, 1)[0]
-
-    pattern = r"\d+\.\s.*?(?=\s\d+\.|\Z)"
-    matches = re.findall(pattern, section, re.DOTALL)
-
-    if not matches:
+    # Require at least 2 list-like lines to avoid false positives
+    # on a single stray numbered sentence.
+    if len(list_lines) < 2:
         return None
 
-    cleaned = [item.strip() for item in matches]
-    return "\n\n".join(cleaned)
+    return "\n".join(list_lines)
 
 
 # -------------------------------------------------
@@ -88,7 +81,7 @@ Document → Chunking → E5 Embeddings → FAISS → Hybrid Answering
 """)
 
     st.divider()
-    st.caption("Version 2.8 – Final Hybrid RAG")
+    st.caption("Version 2.9 – Hybrid RAG, Bugfixed")
 
 
 # -------------------------------------------------
@@ -126,7 +119,7 @@ if uploaded_file is not None:
 
     with col2:
         if st.button("Clear"):
-            st.experimental_rerun()
+            st.rerun()
 
     if query:
 
@@ -177,15 +170,16 @@ if uploaded_file is not None:
                     or "disadvantages" in query_lower
                     or "list" in query_lower
                 ):
-                    # DO NOT trim context for list extraction
+                    # Do NOT trim context for list extraction --
+                    # truncating could cut a list off mid-way.
                     extracted = extract_numbered_list(context)
                     if extracted:
                         answer = extracted
                     else:
-                        answer = generate_answer(context[:1500], query)
+                        # Falls through to the LLM; use the same
+                        # single trim point as the generation path below.
+                        answer = generate_answer(context, query)
                 else:
-                    # Trim context only for LLM generation
-                    context = context[:1500]
                     answer = generate_answer(context, query)
 
                 # Confidence score (Top-1 similarity)
