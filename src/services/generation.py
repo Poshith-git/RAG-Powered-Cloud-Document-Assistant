@@ -102,11 +102,19 @@ def answer_question(chunks, scores, query):
     else:
         answer = generate_answer(context, query)
 
-        # Safety net: even if the query wording didn't trip the list
-        # detector, a suspiciously short answer against a context that
-        # clearly contains a list is a sign the LLM truncated to one
-        # bullet instead of answering fully -- prefer the full list.
-        if len(answer.split()) <= _SHORT_ANSWER_WORD_THRESHOLD:
+        # Safety net: only kick in if the LLM's own answer LOOKS like a
+        # truncated list fragment (starts with a bullet/number marker,
+        # e.g. "1. First item" cut off from a longer list) -- NOT just
+        # any short answer. A short, correct factual answer (a code, a
+        # number, a name) must not be overwritten by an unrelated list
+        # pulled from elsewhere in the context. This was found via the
+        # evaluation harness: "What is the O*NET-SOC code?" (a correct,
+        # short answer) was being replaced by an unrelated bulleted list
+        # under the old, overly broad "any short answer" rule.
+        looks_like_truncated_list_item = bool(
+            _NUMBERED_PATTERN.match(answer.strip()) or _BULLETED_PATTERN.match(answer.strip())
+        )
+        if looks_like_truncated_list_item and len(answer.split()) <= _SHORT_ANSWER_WORD_THRESHOLD:
             extracted = extract_list(context)
             if extracted:
                 answer = extracted
@@ -114,3 +122,44 @@ def answer_question(chunks, scores, query):
     label = confidence_label(float(scores[0]))
 
     return answer, context, label
+
+def test_answer_question_does_not_override_correct_short_factual_answer(monkeypatch):
+    # Regression test found via evals/run_eval.py: "What is the O*NET-SOC
+    # code?" got a correct, short answer ("15-1252.00") from the LLM, but
+    # the old safety net treated ANY short answer as a truncated list and
+    # overwrote it with an unrelated bulleted list from elsewhere in the
+    # context. The safety net must only fire when the LLM's own answer
+    # itself looks like a truncated list fragment (starts with a bullet
+    # or number marker), not for any short-but-correct factual answer.
+    import src.services.generation as gen
+
+    monkeypatch.setattr(gen, "generate_answer", lambda context, query: "15-1252.00")
+
+    context_chunks = [
+        "The O*NET-SOC code for Software Developers is 15-1252.00.",
+        "- Innovation - A tendency to be inventive.\n- Adaptability - A tendency to be open to change.",
+    ]
+    scores = [0.9]
+
+    answer, context, label = gen.answer_question(context_chunks, scores, "What is the O*NET-SOC code?")
+
+    assert answer == "15-1252.00"
+
+
+def test_answer_question_still_rescues_truncated_list_fragment(monkeypatch):
+    # Complementary case: if the LLM's short answer DOES look like a
+    # truncated list item (starts with a number/bullet marker), the
+    # safety net should still rescue the full list.
+    import src.services.generation as gen
+
+    monkeypatch.setattr(gen, "generate_answer", lambda context, query: "1. First item only")
+
+    context_chunks = [
+        "1. First item only\n2. Second item\n3. Third item",
+    ]
+    scores = [0.9]
+
+    answer, context, label = gen.answer_question(context_chunks, scores, "What is required?")
+
+    assert "Second item" in answer
+    assert "Third item" in answer
