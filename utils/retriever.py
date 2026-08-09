@@ -25,16 +25,28 @@ def search_index(index, query_embedding, chunks, top_k=5):
     Returns chunks sorted by similarity (highest first).
     """
 
+    # FAISS pads results with index -1 when top_k exceeds the number of
+    # vectors in the index. Since Python allows negative indexing,
+    # chunks[-1] silently resolves to the LAST chunk instead of raising
+    # an error -- for small documents (fewer chunks than TOP_K), this
+    # was duplicating the last chunk into the results multiple times,
+    # which skewed every document-frequency-based calculation downstream
+    # (found via the eval harness debug script). Clamp top_k so FAISS
+    # never has to pad.
+    effective_top_k = min(top_k, index.ntotal)
+
     query_embedding = np.array([query_embedding]).astype("float32")
 
     # Normalize query embedding
     faiss.normalize_L2(query_embedding)
 
-    distances, indices = index.search(query_embedding, top_k)
+    distances, indices = index.search(query_embedding, effective_top_k)
 
     results = []
 
     for i, score in zip(indices[0], distances[0]):
+        if i == -1:
+            continue
         results.append((chunks[i], float(score)))
 
     # Ensure sorted by similarity (highest first)

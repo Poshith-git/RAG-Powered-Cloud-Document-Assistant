@@ -1,0 +1,285 @@
+{
+  "summary": {
+    "total_cases": 12,
+    "passed": 9,
+    "pass_rate": 0.75,
+    "avg_latency_ms": 847.5,
+    "by_category": {
+      "easy": {
+        "total": 3,
+        "passed": 1
+      },
+      "list": {
+        "total": 3,
+        "passed": 3
+      },
+      "hard": {
+        "total": 1,
+        "passed": 1
+      },
+      "paraphrase": {
+        "total": 2,
+        "passed": 1
+      },
+      "out_of_scope": {
+        "total": 2,
+        "passed": 2
+      },
+      "citation": {
+        "total": 1,
+        "passed": 1
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "q01",
+      "category": "easy",
+      "question": "What is the O*NET-SOC code for Software Developers?",
+      "answer": "15-1252.00",
+      "expected_keywords": [
+        "15-1252"
+      ],
+      "keyword_hits": [
+        "15-1252"
+      ],
+      "keyword_hit_count": 1,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "High",
+      "top_retrieval_score": 0.896,
+      "latency_ms": 4897.1,
+      "passed": true,
+      "notes": "Direct factual lookup, single value"
+    },
+    {
+      "id": "q02",
+      "category": "easy",
+      "question": "What is the median annual wage?",
+      "answer": "The answer is not clearly available in the provided document.",
+      "expected_keywords": [
+        "135,980"
+      ],
+      "keyword_hits": [],
+      "keyword_hit_count": 0,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "High",
+      "top_retrieval_score": 0.811,
+      "latency_ms": 595.9,
+      "passed": false,
+      "notes": "Direct factual lookup, single value"
+    },
+    {
+      "id": "q03",
+      "category": "easy",
+      "question": "What is the projected employment growth for this occupation?",
+      "answer": "The answer is not clearly available in the provided document.",
+      "expected_keywords": [
+        "faster than average"
+      ],
+      "keyword_hits": [],
+      "keyword_hit_count": 0,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "High",
+      "top_retrieval_score": 0.802,
+      "latency_ms": 564.1,
+      "passed": false,
+      "notes": "Direct factual lookup"
+    },
+    {
+      "id": "q04",
+      "category": "list",
+      "question": "What are the essential skills for a software developer?",
+      "answer": "5. Prepare reports or correspondence concerning project specifications, activities, or status.\n- Critical Thinking - Using logic and reasoning to identify the strengths and weaknesses of alternative solutions.\n- Active Learning - Understanding the implications of new information for current and future problem-solving.\n- Reading Comprehension - Understanding written sentences and paragraphs in work-related documents.\n- Active Listening - Giving full attention to what other people are saying.\n- Writing - Communicating effectively in writing as appropriate for the needs of the audience.\n- Speaking - Talking to others to convey information effectively.\n- Monitoring - Assessing performance of yourself, other individuals, or organizations to make improvements.",
+      "expected_keywords": [
+        "critical thinking",
+        "active learning",
+        "reading comprehension",
+        "active listening",
+        "writing",
+        "speaking",
+        "monitoring"
+      ],
+      "keyword_hits": [
+        "critical thinking",
+        "active learning",
+        "reading comprehension",
+        "active listening",
+        "writing",
+        "speaking",
+        "monitoring"
+      ],
+      "keyword_hit_count": 7,
+      "min_keyword_hits_required": 5,
+      "confidence_label": "High",
+      "top_retrieval_score": 0.855,
+      "latency_ms": 37.3,
+      "passed": true,
+      "notes": "7-item list -- regression test for the truncated single-item answer bug"
+    },
+    {
+      "id": "q05",
+      "category": "list",
+      "question": "List all the tasks performed by software developers.",
+      "answer": "1. Analyze user needs and software requirements to determine feasibility of design within time and cost constraints.\n2. Develop or direct software system testing or validation procedures, programming, or documentation.\n3. Confer with systems analysts, engineers, programmers and others to design systems and to obtain information on project limitations and capabilities.\n4. Modify existing software to correct errors, adapt it to new hardware, or upgrade interfaces and improve performance.\n5. Prepare reports or correspondence concerning project specifications, activities, or status.",
+      "expected_keywords": [
+        "analyze user needs",
+        "testing or validation",
+        "confer with systems analysts",
+        "modify existing software",
+        "prepare reports"
+      ],
+      "keyword_hits": [
+        "analyze user needs",
+        "testing or validation",
+        "confer with systems analysts",
+        "modify existing software",
+        "prepare reports"
+      ],
+      "keyword_hit_count": 5,
+      "min_keyword_hits_required": 4,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.833,
+      "latency_ms": 37.2,
+      "passed": true,
+      "notes": "5-item numbered list. KNOWN HARD CASE: pypdf wraps long list items across two text lines, which breaks the list-aware chunker's grouping since the continuation line doesn't match the bullet/number regex -- so this list can still split across chunk boundaries even after the chunking fix. Expected to partially fail until line-unwrapping is added to the loader."
+    },
+    {
+      "id": "q06",
+      "category": "list",
+      "question": "What are the key work styles for this occupation?",
+      "answer": "- English Language - Knowledge of the structure and content of the English language.\n- Innovation - A tendency to be inventive and adopt new perspectives on ways to accomplish work.\n- Adaptability - A tendency to be open to and comfortable with change, new experiences, or ideas at work.\n- Achievement Orientation - A tendency to establish and maintain personally challenging work-related goals.\n- Intellectual Curiosity - A tendency to seek out new work-related knowledge.\n- Attention to Detail - A tendency to be detail-oriented, organized, and thorough in completing work.\n- Dependability - A tendency to be reliable, responsible, and consistent in meeting work-related obligations.",
+      "expected_keywords": [
+        "innovation",
+        "adaptability",
+        "achievement orientation",
+        "intellectual curiosity",
+        "attention to detail",
+        "dependability"
+      ],
+      "keyword_hits": [
+        "innovation",
+        "adaptability",
+        "achievement orientation",
+        "intellectual curiosity",
+        "attention to detail",
+        "dependability"
+      ],
+      "keyword_hit_count": 6,
+      "min_keyword_hits_required": 4,
+      "confidence_label": "Medium",
+      "top_retrieval_score": 0.796,
+      "latency_ms": 37.0,
+      "passed": true,
+      "notes": "6-item list, same known-hard-case risk as q05"
+    },
+    {
+      "id": "q07",
+      "category": "hard",
+      "question": "What level of education is typically required for this job?",
+      "answer": "Bachelor's degree",
+      "expected_keywords": [
+        "bachelor"
+      ],
+      "keyword_hits": [
+        "bachelor"
+      ],
+      "keyword_hit_count": 1,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.806,
+      "latency_ms": 520.5,
+      "passed": true,
+      "notes": "Requires distinguishing the most common answer from secondary mentions (Associate's, Master's) in the same paragraph"
+    },
+    {
+      "id": "q08",
+      "category": "paraphrase",
+      "question": "How much money does a software developer make per year?",
+      "answer": "The answer is not clearly available in the provided document.",
+      "expected_keywords": [
+        "135,980"
+      ],
+      "keyword_hits": [],
+      "keyword_hit_count": 0,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.819,
+      "latency_ms": 534.9,
+      "passed": false,
+      "notes": "Paraphrased wording of q02"
+    },
+    {
+      "id": "q09",
+      "category": "paraphrase",
+      "question": "What do software developers need to know about computers?",
+      "answer": "Computers and Electronics",
+      "expected_keywords": [
+        "computers and electronics",
+        "hardware and software"
+      ],
+      "keyword_hits": [
+        "computers and electronics"
+      ],
+      "keyword_hit_count": 1,
+      "min_keyword_hits_required": 1,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.84,
+      "latency_ms": 526.3,
+      "passed": true,
+      "notes": "Paraphrased reference to the Knowledge Areas section"
+    },
+    {
+      "id": "q10",
+      "category": "out_of_scope",
+      "question": "What certifications are required for this role?",
+      "answer": "Bachelor's degree",
+      "expected_keywords": [],
+      "keyword_hits": [],
+      "keyword_hit_count": 0,
+      "min_keyword_hits_required": 0,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.8,
+      "latency_ms": 532.4,
+      "passed": true,
+      "notes": "Document does not mention certifications -- checks the system doesn't fabricate one"
+    },
+    {
+      "id": "q11",
+      "category": "out_of_scope",
+      "question": "Which companies hire the most software developers?",
+      "answer": "The answer is not available in the document.",
+      "expected_keywords": [],
+      "keyword_hits": [],
+      "keyword_hit_count": 0,
+      "min_keyword_hits_required": 0,
+      "confidence_label": "Low",
+      "top_retrieval_score": 0.801,
+      "latency_ms": 580.3,
+      "passed": true,
+      "notes": "Document does not name any employers"
+    },
+    {
+      "id": "q12",
+      "category": "citation",
+      "question": "What does a software developer do according to the overview?",
+      "answer": "Research, design, and develop computer and network software or specialized utility programs. Analyze user needs and develop software solutions, applying principles and techniques of computer science, engineering, and mathematical analysis.",
+      "expected_keywords": [
+        "design",
+        "develop",
+        "software solutions"
+      ],
+      "keyword_hits": [
+        "design",
+        "develop",
+        "software solutions"
+      ],
+      "keyword_hit_count": 3,
+      "min_keyword_hits_required": 2,
+      "confidence_label": "High",
+      "top_retrieval_score": 0.812,
+      "latency_ms": 1306.6,
+      "passed": true,
+      "notes": "Answer correctness depends on retrieving the Overview section specifically, not the Tasks/Skills sections"
+    }
+  ]
+}
