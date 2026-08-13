@@ -2,26 +2,27 @@ import streamlit as st
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
 
+from src.config import MAX_CONTEXT_CHARS, MAX_NEW_TOKENS, MAX_INPUT_TOKENS, GENERATOR_MODEL_NAME
 
-# -----------------------------
-# Cached model loader
-# -----------------------------
+
 @st.cache_resource
 def load_generator():
-    tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-base")
-    model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-base")
+    # Wired to config.GENERATOR_MODEL_NAME instead of a hardcoded
+    # string -- previously this was hardcoded to "google/flan-t5-base"
+    # independent of src/config.py's GENERATOR_MODEL_NAME constant,
+    # which existed but was never actually used. Swapping models
+    # (e.g. to flan-t5-large) is now a one-line config change instead
+    # of touching this file.
+    tokenizer = T5Tokenizer.from_pretrained(GENERATOR_MODEL_NAME)
+    model = T5ForConditionalGeneration.from_pretrained(GENERATOR_MODEL_NAME)
     return tokenizer, model
 
 
-# -----------------------------
-# Answer generation
-# -----------------------------
 def generate_answer(context, question):
 
     tokenizer, model = load_generator()
 
-    # Limit context size for stability
-    context = context[:2000]
+    context = context[:MAX_CONTEXT_CHARS]
 
     prompt = f"""
 You are a document analysis assistant.
@@ -44,13 +45,13 @@ Answer:
         prompt,
         return_tensors="pt",
         truncation=True,
-        max_length=1024
+        max_length=MAX_INPUT_TOKENS
     )
 
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=250,
+            max_new_tokens=MAX_NEW_TOKENS,
             temperature=0.3,
             top_p=0.9,
             repetition_penalty=1.2,
