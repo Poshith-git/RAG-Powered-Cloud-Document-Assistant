@@ -8,7 +8,7 @@ app_file: app.py
 pinned: false
 ---
 
-# Cloud-Based RAG Document Assistant
+# RAG-Powered Cloud Document Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Web_App-red)
@@ -17,67 +17,161 @@ pinned: false
 ![HuggingFace](https://img.shields.io/badge/LLM-HuggingFace-yellow)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-A cloud-deployed **Retrieval-Augmented Generation (RAG)** application that enables users to upload PDF documents and ask questions grounded in the document content.
+A retrieval-augmented Q&A system for PDF documents: upload a PDF, ask questions in
+plain English, and get grounded answers with a citation-backed confidence signal —
+not a hallucinated guess.
 
-The system performs **semantic retrieval using vector embeddings** and generates answers using a **language model**, reducing hallucination and improving response relevance.
+## Problem
 
----
+Reading a long PDF (a job posting, a policy document, a report) to find one specific
+fact is slow, and a plain chatbot that hasn't seen the document will happily make
+something up. This project retrieves the actual relevant passage from the uploaded
+document before generating an answer, and is designed to say "I don't know" rather
+than fabricate a fact the document doesn't contain.
 
 ## Architecture
 
-User Question  
-↓  
-Query Embedding (E5 Model)  
-↓  
-FAISS Vector Similarity Search  
-↓  
-Top-K Relevant Document Chunks  
-↓  
-FLAN-T5 Context-Aware Answer Generation  
-↓  
-Answer + Retrieval Confidence Score
+```
+Upload PDF
+  -> pdfplumber (layout-aware text extraction)
+  -> list-aware, heading-aware chunking
+  -> E5 embeddings (query/passage-prefixed)
+  -> FAISS cosine-similarity index
+  -> retrieval (query-anchored, section-aware)
+  -> hybrid answer generation
+       - rule-based list extraction (numbered/bulleted lists,
+         including inline bullets some PDFs render as one paragraph)
+       - FLAN-T5-base generation for open-ended questions
+  -> confidence label (all-retrieved-chunk word-overlap check,
+     with document-generic words filtered out)
+  -> structured JSON request log
+```
 
----
+Every box above exists because a real bug was found and fixed there — see
+[Evaluation Results](#evaluation-results) and the design document for the full
+before/after history.
 
 ## Features
 
-- Upload and query **PDF documents**
-- **Semantic document retrieval** using E5 embeddings
-- Efficient vector similarity search using **FAISS**
-- Context-aware answer generation using **FLAN-T5**
-- Retrieval **confidence scoring**
-- Deployable as a **Streamlit web application**
-
----
-
-## Tech Stack
-
-Python  
-Streamlit  
-FAISS  
-Sentence Transformers  
-Hugging Face Transformers  
-Docker
-
----
+- **PDF upload and Q&A** via a Streamlit UI
+- **Grounded answers**: retrieval happens before generation; the model is instructed
+  to say the answer isn't available rather than guess
+- **Hybrid answering**: structural questions ("what are the qualifications") are
+  answered by extracting the actual list from the document, not by asking a small
+  LLM to reproduce it (which was found to truncate or hallucinate)
+- **Confidence signal**: High / Medium / Low, based on both retrieval similarity and
+  whether the query shares real vocabulary with the retrieved content
+- **Structured request logging**: every request is logged as JSON
+  (`logs/requests.jsonl`), viewable via `scripts/view_logs.py`
+- **Swappable generator backend**: FLAN-T5-base by default (free, deployable on
+  Hugging Face Spaces' CPU tier); an Ollama backend for local testing with a larger
+  model (see [Generator Trade-off Study](#generator-trade-off-study))
 
 ## Demo
 
 Try the live application on Hugging Face Spaces:
-
 https://huggingface.co/spaces/Manchivishyam/rag-document-assistant
 
----
+## Installation
 
-## Usage
+```bash
+git clone <this-repo>
+cd RAG-Powered-Cloud-Document-Assistant
+python -m venv venv
+venv\Scripts\Activate.ps1      # Windows PowerShell
+pip install -r requirements-dev.txt
+```
 
-1. Upload a PDF document.
-2. Ask a question related to the document.
-3. The system retrieves relevant document sections using semantic search.
-4. A language model generates an answer grounded in the retrieved context.
-5. The interface displays the answer along with a retrieval confidence score.
+## Running
 
----
+```bash
+streamlit run src/ui/streamlit_app.py
+```
+
+Upload a PDF, then ask a question.
+
+## Evaluation Results
+
+A golden dataset (`evals/golden_dataset.jsonl`, 12 cases across easy/list/hard/
+paraphrase/out-of-scope/citation categories) is run against the system with
+`evals/run_eval.py`, against a public-domain sample PDF (`data/sample_pdfs/`, built
+from U.S. Department of Labor O*NET data — no private documents are committed to
+this repo).
+
+| Stage | Pass rate | What changed |
+|---|---|---|
+| Week 2 baseline | 41.7% (5/12) | First harness run; caught a live bug (a safety-net override was replacing correct short answers with unrelated lists) |
+| Week 3 tuning | 75.0% (9/12) | Six fixes: FAISS `-1` padding bug, section-aware list extraction, heading-attachment in chunking, prefix-collision false positive, word-family generic-word clustering, threshold tuning against real diagnostic data |
+| flan-t5-large (measured, not deployed) | 83.3% (10/12) | Confirmed remaining failures were a generator capability limitation — reverted due to ~100x latency increase on CPU (see below) |
+
+Run it yourself:
+```bash
+python evals/run_eval.py --pdf data/sample_pdfs/software_developers_onet_summary.pdf
+```
+
+### Generator Trade-off Study
+
+Two wage/growth-figure questions in the golden dataset failed consistently even
+though retrieval correctly surfaced the right content with high confidence. A
+controlled A/B test (same document, same fact, only the generator changed) confirmed
+this was a genuine FLAN-T5-base (250M param) capability limitation: swapping to a
+local `qwen3:14b` model via an optional Ollama backend fixed the failure completely
+and consistently across phrasings.
+
+A same-architecture upgrade (`flan-t5-large`, 780M params) was then tried as a
+free, still-deployable option: it raised the eval pass rate to 83.3%, but average
+CPU latency rose from ~850ms to ~73,300ms — roughly 100x slower, not the ~3x its
+parameter count would suggest. That's unusable for a live demo, so the deployed
+default remains `flan-t5-base`. This is documented in
+`RAG_Assistant_Week4_Addendum.docx` and in `src/config.py`'s comments, as a
+measured, rejected-for-production decision rather than an untested assumption.
+
+## Known Limitations (v1)
+
+Documented honestly rather than hidden:
+
+- **Small-model numeric extraction**: FLAN-T5-base can miss a specific number in a
+  numbers-dense passage, particularly when the passage contains multiple competing
+  figures close together (see Generator Trade-off Study above).
+- **Confidence calibration is a heuristic, not a classifier**: it uses lexical
+  word-overlap with document-generic-word filtering, which is an approximation —
+  it can still be fooled by unusual phrasing or very short documents.
+- **List extraction inside a single run-on paragraph is imperfect**: query-anchored
+  windowing mitigates but doesn't fully solve documents where multiple sections have
+  zero separating structure (rare after the `pdfplumber` extraction fix, but possible).
+- **Single-document sessions only**: no cross-document Q&A yet (see Roadmap).
+
+## Roadmap
+
+- [ ] Multi-source ingestion (CSV/DOCX) with retrieval routing between semantic and
+      structured lookup (see `RAG_Assistant_v2_Design_Document.docx`, Chapter 4.2.1)
+- [ ] FastAPI layer behind the existing service layer (already framework-agnostic)
+- [ ] Reranking of top-k candidates before generation
+- [ ] Hosted monitoring dashboard (logs are already structured for this)
+
+## Tests
+
+```bash
+pytest tests/unit tests/integration -v
+```
+34 tests, covering chunking, retrieval, generation logic, list extraction,
+confidence calibration, and structured logging — each with a comment explaining
+which real bug it's a regression test for.
+
+## Tech Stack
+
+Python, Streamlit, FAISS, Hugging Face Transformers (`intfloat/e5-base-v2`,
+`google/flan-t5-base`), pdfplumber, pytest, GitHub Actions (CI), Docker,
+Hugging Face Spaces.
+
+## Project History
+
+This project went through a full engineering review and transformation, documented
+in `RAG_Assistant_v2_Design_Document.docx` (architecture, evaluation framework,
+resume/interview prep) and `RAG_Assistant_Week4_Addendum.docx` (real-world bug
+findings, generator trade-off study). Both are worth reading before an interview
+about this project — they contain the actual before/after evidence for every
+engineering decision above, not just the end state.
 
 ## License
 
