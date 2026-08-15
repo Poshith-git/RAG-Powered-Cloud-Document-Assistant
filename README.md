@@ -1,3 +1,48 @@
+---
+title: RAG Document Assistant
+emoji: 📄
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: src/ui/streamlit_app.py
+pinned: false
+---
+
+# RAG-Powered Cloud Document Assistant
+
+![Python](https://img.shields.io/badge/Python-3.9+-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-Web_App-red)
+![RAG](https://img.shields.io/badge/AI-RAG_System-purple)
+![FAISS](https://img.shields.io/badge/VectorDB-FAISS-orange)
+![HuggingFace](https://img.shields.io/badge/LLM-HuggingFace-yellow)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+A retrieval-augmented Q&A system for PDF documents: upload a PDF, ask questions in
+plain English, and get grounded answers with a citation-backed confidence signal —
+not a hallucinated guess.
+
+## Problem
+
+Reading a long PDF (a job posting, a policy document, a report) to find one specific
+fact is slow, and a plain chatbot that hasn't seen the document will happily make
+something up. This project retrieves the actual relevant passage from the uploaded
+document before generating an answer, and is designed to say "I don't know" rather
+than fabricate a fact the document doesn't contain.
+
+## Architecture
+Upload PDF
+-> pdfplumber (layout-aware text extraction)
+-> list-aware, heading-aware chunking
+-> E5 embeddings (query/passage-prefixed)
+-> FAISS cosine-similarity index
+-> retrieval (query-anchored, section-aware)
+-> hybrid answer generation
+- rule-based list extraction (numbered/bulleted lists,
+including inline bullets some PDFs render as one paragraph)
+- FLAN-T5-base generation for open-ended questions
+-> confidence label (all-retrieved-chunk word-overlap check,
+with document-generic words filtered out)
+-> structured JSON request log
 Every box above exists because a real bug was found and fixed there — see
 [Evaluation Results](#evaluation-results) and the design document for the full
 before/after history.
